@@ -1,3 +1,5 @@
+export type FileCategory = "raw" | "image" | "video" | "document" | "other";
+
 export interface DriveRawFile {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface DriveRawFile {
   modifiedTime: string;
   modifiedTimeFormatted: string;
   thumbnailLink: string | null;
+  iconLink?: string;
   webContentLink?: string;
   folderPath: string; // e.g. "/Fotografia/Sesiones_2024/RAW"
   folderId?: string;
@@ -15,6 +18,8 @@ export interface DriveRawFile {
   shutterSpeed?: string;
   aperture?: string;
   isNef: boolean;
+  extension: string; // e.g. "NEF", "JPG", "PNG", "CR2", etc.
+  category: FileCategory; // "raw" | "image" | "video" | "document" | "other"
 }
 
 export interface DriveFolderItem {

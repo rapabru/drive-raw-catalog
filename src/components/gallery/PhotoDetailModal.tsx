@@ -97,9 +97,15 @@ export default function PhotoDetailModal({
             </div>
           )}
 
-          {/* Nikon Badge */}
+          {/* Format Badge */}
           <span className="absolute top-4 left-4 px-2.5 py-1 text-xs font-bold font-mono tracking-wider text-black bg-nikon-yellow rounded shadow">
-            NIKON RAW (.NEF)
+            {file.extension === "NEF"
+              ? "NIKON RAW (.NEF)"
+              : file.category === "raw"
+              ? `RAW (.${file.extension})`
+              : file.category === "image"
+              ? `IMAGEN (.${file.extension})`
+              : `${file.category.toUpperCase()} (.${file.extension})`}
           </span>
 
           {/* Mobile Prev / Next Buttons */}

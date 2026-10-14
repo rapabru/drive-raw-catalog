@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { DriveRawFile } from "@/types";
-import { Check, Calendar, HardDrive, Folder, Camera, ZoomIn } from "lucide-react";
+import { Check, Calendar, HardDrive, Folder, Camera, ZoomIn, FileText, Film, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 
 interface PhotoCardProps {
@@ -11,6 +11,40 @@ interface PhotoCardProps {
   onToggleSelect: (id: string) => void;
   showDetails: boolean;
   onOpenPreview: (file: DriveRawFile) => void;
+}
+
+function getFormatBadgeStyle(ext: string, category: string) {
+  switch (ext) {
+    case "NEF":
+      return "bg-black/80 text-nikon-yellow border-nikon-yellow/40";
+    case "JPG":
+    case "JPEG":
+      return "bg-black/80 text-emerald-400 border-emerald-500/40";
+    case "PNG":
+      return "bg-black/80 text-sky-400 border-sky-500/40";
+    case "WEBP":
+    case "AVIF":
+    case "HEIC":
+    case "TIFF":
+    case "TIF":
+      return "bg-black/80 text-teal-300 border-teal-500/40";
+    case "CR2":
+    case "CR3":
+    case "ARW":
+    case "DNG":
+    case "RAF":
+    case "ORF":
+    case "RW2":
+      return "bg-black/80 text-purple-400 border-purple-500/40";
+    case "MP4":
+    case "MOV":
+    case "AVI":
+    case "MKV":
+      return "bg-black/80 text-rose-400 border-rose-500/40";
+    default:
+      if (category === "document") return "bg-black/80 text-amber-300 border-amber-500/40";
+      return "bg-black/80 text-zinc-300 border-zinc-600/40";
+  }
 }
 
 export default function PhotoCard({
@@ -22,6 +56,9 @@ export default function PhotoCard({
 }: PhotoCardProps) {
   const [imgError, setImgError] = useState(false);
   const [imgLoading, setImgLoading] = useState(true);
+
+  const ext = file.extension || "FILE";
+  const badgeStyle = getFormatBadgeStyle(ext, file.category);
 
   return (
     <div
@@ -60,8 +97,16 @@ export default function PhotoCard({
           />
         ) : (
           <div className="flex flex-col items-center justify-center p-4 text-center">
-            <Camera className="w-10 h-10 text-dark-600 mb-2" />
-            <span className="text-[11px] font-mono text-zinc-500">RAW .NEF</span>
+            {file.category === "video" ? (
+              <Film className="w-10 h-10 text-dark-600 mb-2" />
+            ) : file.category === "document" ? (
+              <FileText className="w-10 h-10 text-dark-600 mb-2" />
+            ) : file.category === "image" ? (
+              <ImageIcon className="w-10 h-10 text-dark-600 mb-2" />
+            ) : (
+              <Camera className="w-10 h-10 text-dark-600 mb-2" />
+            )}
+            <span className="text-[11px] font-mono text-zinc-500">.{ext}</span>
           </div>
         )}
 
@@ -72,10 +117,12 @@ export default function PhotoCard({
           </div>
         </div>
 
-        {/* Top Badges: Nikon format tag */}
+        {/* Top Badges: Dynamic format tag */}
         <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-1.5">
-          <span className="px-2 py-0.5 text-[10px] font-bold font-mono tracking-wider uppercase bg-black/80 text-nikon-yellow backdrop-blur-md rounded border border-nikon-yellow/30 shadow">
-            .NEF
+          <span
+            className={`px-2 py-0.5 text-[10px] font-bold font-mono tracking-wider uppercase backdrop-blur-md rounded border shadow ${badgeStyle}`}
+          >
+            .{ext}
           </span>
           {file.cameraModel && (
             <span className="hidden group-hover:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-dark-950/80 text-zinc-300 rounded backdrop-blur-md">

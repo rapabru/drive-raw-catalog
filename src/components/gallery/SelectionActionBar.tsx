@@ -185,7 +185,7 @@ export default function SelectionActionBar({
               type="button"
               disabled={isDownloading}
               onClick={handleSequentialDownload}
-              title="Descargar archivos .NEF sueltos uno a uno"
+              title="Descargar archivos sueltos uno a uno"
               className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-dark-800 hover:bg-dark-750 border border-dark-700 rounded-xl transition-colors disabled:opacity-50"
             >
               <FolderDown className="w-4 h-4 text-zinc-400" />

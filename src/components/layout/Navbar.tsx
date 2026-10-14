@@ -60,7 +60,7 @@ export default function Navbar({
                   Drive RAW <span className="text-zinc-500 font-normal">Catalog</span>
                 </span>
                 <span className="block text-[10px] text-zinc-400 -mt-1 font-mono">
-                  NIKON .NEF SPECIALIZED
+                  MULTIFORMAT & RAW SUITE
                 </span>
               </div>
             </button>
@@ -71,10 +71,12 @@ export default function Navbar({
               title="Cambiar carpeta en el Árbol de Carpetas"
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-zinc-300 bg-dark-800 border border-dark-700 rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
             >
-              <FolderTree className="w-3.5 h-3.5 text-nikon-amber" />
-              <span>
+              <FolderTree className="w-3.5 h-3.5 text-nikon-amber flex-shrink-0" />
+              <span className="truncate max-w-[240px]">
                 {currentFolderName
-                  ? currentFolderName
+                  ? currentFolderName.startsWith("Carpeta:") || currentFolderName.startsWith("Lote")
+                    ? currentFolderName
+                    : `Carpeta: ${currentFolderName}`
                   : currentFolderId
                   ? `Carpeta: ${currentFolderId.slice(0, 10)}...`
                   : "Explorador de Carpetas"}

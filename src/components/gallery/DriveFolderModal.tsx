@@ -74,7 +74,7 @@ export default function DriveFolderModal({
               <HardDrive className={`w-5 h-5 ${!currentFolderId ? "text-nikon-yellow" : "text-zinc-500"}`} />
               <div>
                 <p className="font-semibold text-xs text-white">Todo mi Google Drive (Raíz)</p>
-                <p className="text-[11px] text-zinc-400">Escanea y cataloga todos los archivos .NEF de tu cuenta</p>
+                <p className="text-[11px] text-zinc-400">Escanea y cataloga todos los archivos y fotos de tu cuenta</p>
               </div>
             </button>
           </div>

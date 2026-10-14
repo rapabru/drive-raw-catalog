@@ -263,8 +263,8 @@ function CatalogContent() {
                   </h2>
                   <p className="text-[11px] text-zinc-400">
                     {isLoading
-                      ? "Escaneando archivos RAW sin límite de 100..."
-                      : `${files.length} tomas RAW (.NEF) catalogadas`}
+                      ? "Escaneando archivos en Google Drive..."
+                      : `${files.length} ${files.length === 1 ? "archivo catalogado" : "archivos catalogados"}`}
                   </p>
                 </div>
               </div>

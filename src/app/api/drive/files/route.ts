@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const folderId = searchParams.get("folderId");
     const folderIdsParam = searchParams.get("folderIds");
+    const fileTypeParam = (searchParams.get("fileType") || "all") as "all" | "images" | "raw";
 
     let targetFolderIds: string[] = [];
     if (folderIdsParam) {
@@ -33,7 +34,12 @@ export async function GET(request: NextRequest) {
       targetFolderIds = [folderId.trim()];
     }
 
-    const files = await fetchGoogleDriveRawFiles(session.accessToken, targetFolderIds);
+    const files = await fetchGoogleDriveRawFiles(
+      session.accessToken,
+      targetFolderIds,
+      5000,
+      fileTypeParam
+    );
 
     return NextResponse.json({
       files,

@@ -156,7 +156,7 @@ export default function FolderExplorer({
       const files = data.files || [];
 
       if (files.length === 0) {
-        setBatchProgress("No se encontraron archivos .NEF en estas carpetas.");
+        setBatchProgress("No se encontraron archivos en estas carpetas.");
         setTimeout(() => {
           setBatchProgress(null);
           setIsBatchDownloading(false);
@@ -164,7 +164,7 @@ export default function FolderExplorer({
         return;
       }
 
-      setBatchProgress(`Empaquetando ${files.length} tomas RAW en archivo ZIP...`);
+      setBatchProgress(`Empaquetando ${files.length} archivos en archivo ZIP...`);
       const zip = new JSZip();
 
       for (let i = 0; i < files.length; i++) {
@@ -184,7 +184,7 @@ export default function FolderExplorer({
 
       const a = document.createElement("a");
       a.href = zipUrl;
-      a.download = `Lote_RAW_${selectedFolderMap.size}_Carpetas_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `Lote_${selectedFolderMap.size}_Carpetas_${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -239,7 +239,7 @@ export default function FolderExplorer({
             <HardDrive className="w-4 h-4 text-nikon-yellow transition-transform group-hover:scale-110" />
             <div className="text-left">
               <span className="block font-bold text-white">Escanear Todo Drive</span>
-              <span className="text-[10px] text-zinc-400 block font-normal">Búsqueda global (.NEF)</span>
+              <span className="text-[10px] text-zinc-400 block font-normal">Búsqueda global multiformato</span>
             </div>
             <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:translate-x-0.5 transition-transform ml-1" />
           </button>
@@ -333,7 +333,7 @@ export default function FolderExplorer({
               Catalogar: <span className="text-nikon-yellow font-mono">{currentFolderName}</span>
             </h3>
             <p className="text-xs text-zinc-400">
-              Mapea y extrae todas las tomas RAW (.NEF) que estén directamente dentro de este nivel.
+              Mapea y extrae todos los archivos (RAW, JPG, PNG, etc.) que estén dentro de este nivel.
             </p>
           </div>
         </div>
@@ -457,7 +457,7 @@ export default function FolderExplorer({
             No hay más subcarpetas aquí
           </h4>
           <p className="text-xs text-zinc-400 max-w-sm mb-4">
-            Esta carpeta puede contener directamente archivos fotográficos RAW (.NEF). Puedes iniciar la catalogación ahora.
+            Esta carpeta puede contener directamente archivos de fotos o multimedia. Puedes iniciar la catalogación ahora.
           </p>
           <button
             type="button"

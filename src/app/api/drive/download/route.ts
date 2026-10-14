@@ -18,9 +18,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("fileId");
-    const rawFileName = searchParams.get("fileName") || "raw_file.NEF";
+    const rawFileName = searchParams.get("fileName") || "archivo_descargado";
     // Security: Sanitize filename to prevent HTTP Header Injection / Content-Disposition manipulation
-    const fileName = rawFileName.replace(/[\r\n"\\/]/g, "").trim() || "raw_file.NEF";
+    const fileName = rawFileName.replace(/[\r\n"\\/]/g, "").trim() || "archivo_descargado";
 
     if (!fileId) {
       return NextResponse.json({ error: "fileId es requerido" }, { status: 400 });

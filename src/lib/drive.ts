@@ -80,13 +80,15 @@ export async function fetchFolderDetails(
 }
 
 /**
- * Fetches real RAW .NEF files from Google Drive with PAGINATION and MULTI-FOLDER SUPPORT.
- * Accepts a single folderId or an array of folderIds to merge and cache multiple folders together!
+ * Fetches files from Google Drive with PAGINATION, MULTI-FOLDER SUPPORT,
+ * and support for ALL file types (RAW, JPG, PNG, WEBP, videos, documents, etc.).
+ * Accepts single folderId or array of folderIds to merge and cache multiple folders together!
  */
 export async function fetchGoogleDriveRawFiles(
   accessToken: string,
   folderIds?: string | string[],
-  maxFiles: number = 5000
+  maxFiles: number = 5000,
+  fileTypeFilter: "all" | "images" | "raw" = "all"
 ): Promise<DriveRawFile[]> {
   try {
     const auth = new google.auth.OAuth2();
@@ -104,9 +106,16 @@ export async function fetchGoogleDriveRawFiles(
       .map((id) => id.trim().replace(/[^a-zA-Z0-9_-]/g, ""))
       .filter((id) => id !== "" && id !== "all" && id !== "root");
 
-    // Build search query strictly for Nikon RAW (.NEF) files
-    let query =
-      "trashed = false and (name contains '.NEF' or name contains '.nef' or mimeType = 'image/x-nikon-nef')";
+    // Base query: exclude trashed files and Google Drive folder objects
+    let query = "trashed = false and mimeType != 'application/vnd.google-apps.folder'";
+
+    if (fileTypeFilter === "raw") {
+      query +=
+        " and (name contains '.NEF' or name contains '.nef' or name contains '.CR2' or name contains '.cr2' or name contains '.CR3' or name contains '.cr3' or name contains '.ARW' or name contains '.arw' or name contains '.DNG' or name contains '.dng' or mimeType = 'image/x-nikon-nef')";
+    } else if (fileTypeFilter === "images") {
+      query +=
+        " and (mimeType contains 'image/' or name contains '.NEF' or name contains '.nef' or name contains '.CR2' or name contains '.cr2' or name contains '.ARW' or name contains '.arw' or name contains '.DNG' or name contains '.dng' or name contains '.jpg' or name contains '.jpeg' or name contains '.png' or name contains '.webp')";
+    }
 
     if (validFolderIds.length === 1) {
       query += ` and '${validFolderIds[0]}' in parents`;
@@ -123,6 +132,7 @@ export async function fetchGoogleDriveRawFiles(
       size?: string | null;
       modifiedTime?: string | null;
       thumbnailLink?: string | null;
+      iconLink?: string | null;
       webContentLink?: string | null;
       parents?: string[] | null;
       imageMediaMetadata?: Record<string, unknown> | null;
@@ -144,7 +154,7 @@ export async function fetchGoogleDriveRawFiles(
         pageSize: 100,
         orderBy: "modifiedTime desc",
         fields:
-          "nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, parents, imageMediaMetadata)",
+          "nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, iconLink, webContentLink, parents, imageMediaMetadata)",
       };
 
       if (pageToken) {
@@ -162,9 +172,88 @@ export async function fetchGoogleDriveRawFiles(
       }
     }
 
+    const rawExtensions = new Set([
+      "NEF",
+      "NRW",
+      "CR2",
+      "CR3",
+      "ARW",
+      "DNG",
+      "RAF",
+      "ORF",
+      "RW2",
+      "PEF",
+      "SRW",
+    ]);
+
+    const imageExtensions = new Set([
+      "JPG",
+      "JPEG",
+      "PNG",
+      "WEBP",
+      "GIF",
+      "TIFF",
+      "TIF",
+      "HEIC",
+      "HEIF",
+      "BMP",
+      "AVIF",
+      "SVG",
+    ]);
+
+    const videoExtensions = new Set([
+      "MP4",
+      "MOV",
+      "AVI",
+      "MKV",
+      "M4V",
+      "WEBM",
+    ]);
+
+    const docExtensions = new Set([
+      "PDF",
+      "DOC",
+      "DOCX",
+      "XLS",
+      "XLSX",
+      "PPT",
+      "PPTX",
+      "TXT",
+      "XMP",
+      "ZIP",
+      "RAR",
+      "7Z",
+    ]);
+
     return allDriveFiles.map((file) => {
       const sizeBytes = parseInt(file.size || "0", 10);
-      const isNef = (file.name || "").toLowerCase().endsWith(".nef");
+      const rawName = file.name || "Archivo_Sin_Nombre";
+      
+      // Determine file extension
+      const rawExt = rawName.includes(".")
+        ? rawName.split(".").pop()?.toUpperCase() || ""
+        : "";
+      const extension = rawExt || "ARCHIVO";
+
+      // Classify file category
+      let category: "raw" | "image" | "video" | "document" | "other" = "other";
+      if (rawExtensions.has(extension) || file.mimeType === "image/x-nikon-nef") {
+        category = "raw";
+      } else if (
+        imageExtensions.has(extension) ||
+        (file.mimeType && file.mimeType.startsWith("image/"))
+      ) {
+        category = "image";
+      } else if (
+        videoExtensions.has(extension) ||
+        (file.mimeType && file.mimeType.startsWith("video/"))
+      ) {
+        category = "video";
+      } else if (docExtensions.has(extension)) {
+        category = "document";
+      }
+
+      const isNef = extension === "NEF" || file.mimeType === "image/x-nikon-nef";
 
       // Enhance thumbnail quality from Google (scaling thumbnail up to 800px)
       let thumb = file.thumbnailLink || null;
@@ -179,13 +268,14 @@ export async function fetchGoogleDriveRawFiles(
 
       return {
         id: file.id || "",
-        name: file.name || "Archivo_RAW.NEF",
-        mimeType: file.mimeType || "image/x-nikon-nef",
+        name: rawName,
+        mimeType: file.mimeType || "application/octet-stream",
         size: sizeBytes,
         sizeFormatted: formatBytes(sizeBytes),
         modifiedTime: file.modifiedTime || new Date().toISOString(),
         modifiedTimeFormatted: formatDate(file.modifiedTime || new Date().toISOString()),
         thumbnailLink: thumb,
+        iconLink: file.iconLink || undefined,
         webContentLink: file.webContentLink || undefined,
         folderPath: validFolderIds.length > 1 ? `Lote Multi-Carpeta (${parentInfo})` : `/Google Drive/${parentInfo}`,
         folderId: file.parents?.[0] || undefined,
@@ -194,6 +284,8 @@ export async function fetchGoogleDriveRawFiles(
         shutterSpeed: typeof meta?.exposureTime === "string" ? meta.exposureTime : undefined,
         aperture: typeof meta?.aperture === "number" ? `f/${meta.aperture}` : undefined,
         isNef,
+        extension,
+        category,
       };
     });
   } catch (error) {
