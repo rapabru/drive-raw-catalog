@@ -80,28 +80,40 @@ export async function fetchFolderDetails(
 }
 
 /**
- * Fetches real RAW .NEF files from Google Drive with PAGINATION (no 100-file limit)
- * Loops through nextPageToken until all files are retrieved or maxFiles is reached.
+ * Fetches real RAW .NEF files from Google Drive with PAGINATION and MULTI-FOLDER SUPPORT.
+ * Accepts a single folderId or an array of folderIds to merge and cache multiple folders together!
  */
 export async function fetchGoogleDriveRawFiles(
   accessToken: string,
-  folderId?: string,
-  maxFiles: number = 3000
+  folderIds?: string | string[],
+  maxFiles: number = 5000
 ): Promise<DriveRawFile[]> {
   try {
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
     const drive = google.drive({ version: "v3", auth });
 
+    // Normalize folderIds into array of sanitized IDs
+    const idList: string[] = Array.isArray(folderIds)
+      ? folderIds
+      : folderIds
+      ? [folderIds]
+      : [];
+
+    const validFolderIds = idList
+      .map((id) => id.trim().replace(/[^a-zA-Z0-9_-]/g, ""))
+      .filter((id) => id !== "" && id !== "all" && id !== "root");
+
     // Build search query strictly for Nikon RAW (.NEF) files
     let query =
       "trashed = false and (name contains '.NEF' or name contains '.nef' or mimeType = 'image/x-nikon-nef')";
 
-    if (folderId && folderId.trim() !== "" && folderId !== "all" && folderId !== "root") {
-      const sanitizedFolderId = folderId.trim().replace(/[^a-zA-Z0-9_-]/g, "");
-      if (sanitizedFolderId) {
-        query += ` and '${sanitizedFolderId}' in parents`;
-      }
+    if (validFolderIds.length === 1) {
+      query += ` and '${validFolderIds[0]}' in parents`;
+    } else if (validFolderIds.length > 1) {
+      // Multi-folder query: ('id1' in parents or 'id2' in parents or ...)
+      const parentClauses = validFolderIds.map((id) => `'${id}' in parents`).join(" or ");
+      query += ` and (${parentClauses})`;
     }
 
     const allDriveFiles: Array<{
@@ -162,6 +174,9 @@ export async function fetchGoogleDriveRawFiles(
 
       const meta = file.imageMediaMetadata as Record<string, unknown> | undefined;
 
+      const parentInfo =
+        file.parents && file.parents.length > 0 ? `Carpeta: ${file.parents[0]}` : "Google Drive";
+
       return {
         id: file.id || "",
         name: file.name || "Archivo_RAW.NEF",
@@ -172,7 +187,8 @@ export async function fetchGoogleDriveRawFiles(
         modifiedTimeFormatted: formatDate(file.modifiedTime || new Date().toISOString()),
         thumbnailLink: thumb,
         webContentLink: file.webContentLink || undefined,
-        folderPath: folderId ? `Google Drive (ID: ${folderId})` : "/Google Drive",
+        folderPath: validFolderIds.length > 1 ? `Lote Multi-Carpeta (${parentInfo})` : `/Google Drive/${parentInfo}`,
+        folderId: file.parents?.[0] || undefined,
         cameraModel: typeof meta?.cameraModel === "string" ? meta.cameraModel : undefined,
         iso: typeof meta?.isoSpeed === "number" ? meta.isoSpeed : undefined,
         shutterSpeed: typeof meta?.exposureTime === "string" ? meta.exposureTime : undefined,

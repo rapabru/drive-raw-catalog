@@ -91,6 +91,53 @@ function CatalogContent() {
     [status, router]
   );
 
+  // Catalog / fetch RAW files for MULTIPLE folders together
+  const catalogMultipleFolders = useCallback(
+    async (foldersList: Array<{ id: string; name: string }>) => {
+      if (status !== "authenticated" || foldersList.length === 0) return;
+
+      setIsLoading(true);
+      setErrorNotice(null);
+      setCurrentView("gallery");
+      setSelectedIds(new Set());
+
+      const folderIds = foldersList.map((f) => f.id);
+      const namesSummary =
+        foldersList.length <= 2
+          ? foldersList.map((f) => f.name).join(", ")
+          : `${foldersList[0].name}, ${foldersList[1].name} (+${foldersList.length - 2} más)`;
+
+      setActiveFolder({
+        id: folderIds.join(","),
+        name: `Lote (${foldersList.length} carpetas: ${namesSummary})`,
+      });
+
+      try {
+        const url = `/api/drive/files?folderIds=${encodeURIComponent(folderIds.join(","))}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.push("/login");
+            return;
+          }
+          throw new Error(data.error || "Error al consultar Google Drive");
+        }
+
+        setFiles(data.files || []);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al catalogar lote de carpetas";
+        console.error("Error catalogando archivos RAW:", err);
+        setErrorNotice(msg);
+        setFiles([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [status, router]
+  );
+
   // Selection handlers
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -191,6 +238,7 @@ function CatalogContent() {
           /* Initial Screen: Google Drive Folder Tree */
           <FolderExplorer
             onSelectFolderToCatalog={(folder) => catalogFolder(folder.id, folder.name)}
+            onSelectMultipleFolders={catalogMultipleFolders}
             onScanEntireDrive={() => catalogFolder(undefined, "Todo Google Drive")}
           />
         ) : (

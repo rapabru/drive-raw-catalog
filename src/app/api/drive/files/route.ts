@@ -20,13 +20,24 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get("folderId") || undefined;
+    const folderId = searchParams.get("folderId");
+    const folderIdsParam = searchParams.get("folderIds");
 
-    const files = await fetchGoogleDriveRawFiles(session.accessToken, folderId);
+    let targetFolderIds: string[] = [];
+    if (folderIdsParam) {
+      targetFolderIds = folderIdsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (folderId && folderId !== "all" && folderId !== "root") {
+      targetFolderIds = [folderId.trim()];
+    }
+
+    const files = await fetchGoogleDriveRawFiles(session.accessToken, targetFolderIds);
 
     return NextResponse.json({
       files,
-      folderId: folderId || "root",
+      folderIds: targetFolderIds,
       totalCount: files.length,
       authenticated: true,
     });
