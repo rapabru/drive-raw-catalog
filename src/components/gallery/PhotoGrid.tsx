@@ -80,8 +80,11 @@ export default function PhotoGrid({
   if (isLoading) {
     return (
       <div className="w-full py-24 flex flex-col items-center justify-center text-center">
-        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-dark-900 border border-dark-800 shadow-xl mb-4">
-          <Camera className="w-8 h-8 text-nikon-yellow animate-spin" />
+        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl mb-4">
+          {/* Anillo circular de enfoque concéntrico que gira con simetría perfecta */}
+          <div className="absolute w-11 h-11 rounded-full border-2 border-dark-700/80 border-t-nikon-yellow border-r-nikon-amber animate-spin" />
+          {/* Icono de cámara estático en el centro exacto */}
+          <Camera className="w-5 h-5 text-zinc-100 relative z-10" />
         </div>
         <h3 className="text-base font-medium text-white mb-1">
           Catalogando archivos RAW (.NEF) de Google Drive...
