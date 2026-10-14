@@ -18,10 +18,26 @@ const nextConfig = {
     ],
   },
   async headers() {
+    const cspHeader = `
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' blob: data: https://*.googleusercontent.com https://drive.google.com https://lh3.googleusercontent.com;
+      font-src 'self' data:;
+      connect-src 'self' https://*.googleusercontent.com https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com;
+      frame-ancestors 'none';
+      block-all-mixed-content;
+      upgrade-insecure-requests;
+    `.replace(/\s{2,}/g, ' ').trim();
+
     return [
       {
         source: "/(.*)",
         headers: [
+          {
+            key: "Content-Security-Policy",
+            value: cspHeader,
+          },
           {
             key: "X-Content-Type-Options",
             value: "nosniff",

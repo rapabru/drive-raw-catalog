@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
       targetFolderIds = folderIdsParam
         .split(",")
         .map((s) => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .slice(0, 50); // Security: Clamp to max 50 folders per query to prevent query buffer overflow
     } else if (folderId && folderId !== "all" && folderId !== "root") {
       targetFolderIds = [folderId.trim()];
     }
@@ -48,13 +49,11 @@ export async function GET(request: NextRequest) {
       authenticated: true,
     });
   } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Error al consultar Google Drive";
     console.error("API /api/drive/files error:", error);
 
     return NextResponse.json(
       {
-        error: errorMessage,
+        error: "No se pudieron obtener los archivos desde Google Drive. Intenta nuevamente.",
         files: [],
       },
       { status: 500 }

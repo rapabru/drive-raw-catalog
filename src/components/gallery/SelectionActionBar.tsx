@@ -33,6 +33,13 @@ export default function SelectionActionBar({
    */
   const handleZipDownload = async () => {
     try {
+      if (totalSizeBytes > 600 * 1024 * 1024) {
+        const proceed = window.confirm(
+          `Advertencia de Memoria: Los archivos seleccionados pesan ${formatBytes(totalSizeBytes)}. Crear un archivo ZIP de este tamaño en la memoria del navegador puede ralentizar o colgar la pestaña.\n\n¿Deseas continuar empaquetando en ZIP, o prefieres cancelar y descargarlos sueltos?`
+        );
+        if (!proceed) return;
+      }
+
       setIsDownloading(true);
       setDownloadProgress(`Preparando paquete ZIP (${selectedFiles.length} archivos)...`);
 
@@ -55,7 +62,7 @@ export default function SelectionActionBar({
 
       const a = document.createElement("a");
       a.href = zipUrl;
-      a.download = `Nikon_RAW_Export_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `Drive_Export_${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

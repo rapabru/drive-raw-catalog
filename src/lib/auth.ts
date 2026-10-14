@@ -1,5 +1,50 @@
 import { NextAuthOptions } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+
+/**
+ * Exchanges an expired Google OAuth refresh token for a fresh access token
+ */
+async function refreshGoogleAccessToken(token: JWT): Promise<JWT> {
+  try {
+    if (!token.refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    const url = "https://oauth2.googleapis.com/token";
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken,
+      }),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) {
+      console.error("Error refreshing Google OAuth access token:", refreshedTokens);
+      throw refreshedTokens;
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      expiresAt: Math.floor(Date.now() / 1000 + (refreshedTokens.expires_in || 3600)),
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+      error: undefined,
+    };
+  } catch (error) {
+    console.error("Failed to refresh Google OAuth token:", error);
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,15 +64,28 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account }) {
+      // Initial sign-in: store tokens and expiration
       if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAt: account.expires_at,
+        };
       }
-      return token;
+
+      // If access token has not expired (with 5 minute safety threshold), return it
+      const expiresAt = token.expiresAt || 0;
+      if (Date.now() < (expiresAt - 300) * 1000) {
+        return token;
+      }
+
+      // Token has expired: refresh it automatically
+      return refreshGoogleAccessToken(token);
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined;
+      session.error = token.error as string | undefined;
       return session;
     },
   },
@@ -39,5 +97,7 @@ export const authOptions: NextAuthOptions = {
   },
   secret:
     process.env.NEXTAUTH_SECRET ||
-    "4f8a9e2b1c7d6e5f0a3b8c7d9e2f1a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
+    (process.env.NODE_ENV === "development"
+      ? "dev-secret-only-not-for-production"
+      : undefined),
 };

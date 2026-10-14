@@ -24,6 +24,7 @@ import {
   FolderDown,
 } from "lucide-react";
 import JSZip from "jszip";
+import { formatBytes } from "@/lib/utils";
 
 interface SelectedFolderMeta {
   id: string;
@@ -162,6 +163,18 @@ export default function FolderExplorer({
           setIsBatchDownloading(false);
         }, 3000);
         return;
+      }
+
+      const totalBytes = files.reduce((acc: number, f: { size?: number }) => acc + (f.size || 0), 0);
+      if (totalBytes > 600 * 1024 * 1024) {
+        const proceed = window.confirm(
+          `Advertencia de Memoria: El lote seleccionado pesa aproximadamente ${formatBytes(totalBytes)}. Empaquetar un archivo ZIP tan grande en la memoria del navegador puede ralentizar o colgar la pestaña.\n\n¿Deseas continuar empaquetando en ZIP?`
+        );
+        if (!proceed) {
+          setIsBatchDownloading(false);
+          setBatchProgress(null);
+          return;
+        }
       }
 
       setBatchProgress(`Empaquetando ${files.length} archivos en archivo ZIP...`);

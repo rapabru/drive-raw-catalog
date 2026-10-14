@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("fileId");
     const rawFileName = searchParams.get("fileName") || "archivo_descargado";
-    // Security: Sanitize filename to prevent HTTP Header Injection / Content-Disposition manipulation
-    const fileName = rawFileName.replace(/[\r\n"\\/]/g, "").trim() || "archivo_descargado";
+    // Security: Sanitize filename against CRLF, quotes, backslashes, and semicolons
+    const cleanFileName = rawFileName.replace(/[\r\n"\\/;]/g, "").trim() || "archivo_descargado";
+    // Standard RFC 5987 / RFC 6266 encoding for international photography filenames
+    const asciiFileName = cleanFileName.replace(/[^\x20-\x7E]/g, "_");
+    const encodedFileName = encodeURIComponent(cleanFileName);
 
     if (!fileId) {
       return NextResponse.json({ error: "fileId es requerido" }, { status: 400 });
@@ -43,12 +46,14 @@ export async function GET(request: NextRequest) {
     return new NextResponse(response.data as unknown as ReadableStream, {
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`,
       },
     });
   } catch (error: unknown) {
     console.error("Error al descargar archivo de Google Drive:", error);
-    const msg = error instanceof Error ? error.message : "Error desconocido en descarga";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: "No se pudo descargar el archivo desde Google Drive. Intenta nuevamente." },
+      { status: 500 }
+    );
   }
 }

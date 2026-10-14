@@ -31,8 +31,10 @@ export async function GET(request: NextRequest) {
       totalFolders: folders.length,
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Error al obtener carpetas de Google Drive";
     console.error("API /api/drive/folders error:", error);
-    return NextResponse.json({ error: msg, folders: [] }, { status: 500 });
+    return NextResponse.json(
+      { error: "No se pudieron obtener las carpetas desde Google Drive. Intenta nuevamente.", folders: [] },
+      { status: 500 }
+    );
   }
 }
