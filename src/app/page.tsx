@@ -2,26 +2,22 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { DriveRawFile } from "@/types";
-import { DemoFolderInfo, MOCK_FOLDERS } from "@/lib/constants";
 import Navbar from "@/components/layout/Navbar";
 import PhotoGrid from "@/components/gallery/PhotoGrid";
 import SelectionActionBar from "@/components/gallery/SelectionActionBar";
 import PhotoDetailModal from "@/components/gallery/PhotoDetailModal";
 import DriveFolderModal from "@/components/gallery/DriveFolderModal";
-import { Info, LogIn } from "lucide-react";
-import Link from "next/link";
+import { Camera, AlertCircle } from "lucide-react";
 
 function CatalogContent() {
   const { status } = useSession();
-  const searchParams = useSearchParams();
-  const forceDemo = searchParams.get("demo") === "true";
+  const router = useRouter();
 
   const [files, setFiles] = useState<DriveRawFile[]>([]);
-  const [availableFolders, setAvailableFolders] = useState<DemoFolderInfo[]>(MOCK_FOLDERS);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
+  const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
   // Search & Metadata controls
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,36 +31,53 @@ function CatalogContent() {
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
 
-  // Fetch files from API
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  // Fetch real Google Drive files from API
   const loadFiles = useCallback(async () => {
+    if (status !== "authenticated") return;
+
     setIsLoading(true);
+    setErrorNotice(null);
+
     try {
       let url = "/api/drive/files";
-      const params = new URLSearchParams();
-      if (currentFolderId) params.append("folderId", currentFolderId);
-      if (forceDemo) params.append("demo", "true");
-      if (params.toString()) url += `?${params.toString()}`;
+      if (currentFolderId) {
+        url += `?folderId=${encodeURIComponent(currentFolderId)}`;
+      }
 
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.files) {
-        setFiles(data.files);
-        setIsDemo(Boolean(data.isDemo));
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        throw new Error(data.error || "Error al consultar Google Drive");
       }
-      if (data.folders) {
-        setAvailableFolders(data.folders);
-      }
-    } catch (err) {
+
+      setFiles(data.files || []);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al conectar con Google Drive";
       console.error("Error cargando archivos RAW:", err);
+      setErrorNotice(msg);
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentFolderId, forceDemo]);
+  }, [currentFolderId, status, router]);
 
   useEffect(() => {
-    loadFiles();
-  }, [loadFiles]);
+    if (status === "authenticated") {
+      loadFiles();
+    }
+  }, [status, loadFiles]);
 
   // Selection handlers
   const handleToggleSelect = (id: string) => {
@@ -104,6 +117,21 @@ function CatalogContent() {
     }
   };
 
+  // If session is still loading or user is unauthenticated
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center text-center p-4">
+        <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-dark-900 border border-dark-800 shadow-2xl mb-3">
+          <div className="absolute w-10 h-10 rounded-full border-2 border-dark-700/80 border-t-nikon-yellow border-r-nikon-amber animate-spin" />
+          <Camera className="w-5 h-5 text-zinc-100 relative z-10" />
+        </div>
+        <p className="text-xs text-zinc-400 font-mono">
+          Verificando sesión segura con Google...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-dark-950 text-zinc-100 flex flex-col selection:bg-nikon-amber selection:text-black">
       {/* Top Navbar */}
@@ -112,35 +140,23 @@ function CatalogContent() {
         onSearchChange={setSearchQuery}
         showDetails={showDetails}
         onToggleDetails={() => setShowDetails((prev) => !prev)}
-        isDemo={isDemo}
         onRefresh={loadFiles}
         isLoading={isLoading}
         onOpenFolderModal={() => setIsFolderModalOpen(true)}
         currentFolderId={currentFolderId}
       />
 
-      {/* Demo Notice Banner */}
-      {isDemo && (
+      {/* Error notification if Drive query fails */}
+      {errorNotice && (
         <aside
-          aria-label="Aviso de demostración"
-          className="w-full bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-200"
+          aria-label="Aviso de error"
+          className="w-full bg-red-950/40 border-b border-red-800/40 px-4 py-2.5 text-xs text-red-200"
         >
-          <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <span>
-                <strong>Modo Demostración Activo:</strong> Estás explorando el catálogo Nikon (.NEF) con tomas de alta resolución y metadatos EXIF. Puedes filtrar sesiones, cambiar el toggle de metadatos y probar la descarga de archivos.
-              </span>
-            </div>
-            {status !== "authenticated" && (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-3 py-1 bg-nikon-yellow text-black font-semibold rounded-lg hover:bg-nikon-amber transition-colors flex-shrink-0"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Conectar Google Drive</span>
-              </Link>
-            )}
+          <div className="max-w-[1920px] mx-auto flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span>
+              <strong>Error en Google Drive:</strong> {errorNotice}. Verifica que la Google Drive API esté habilitada y que tu cuenta tenga permisos de acceso.
+            </span>
           </div>
         </aside>
       )}
@@ -185,7 +201,6 @@ function CatalogContent() {
         onClose={() => setIsFolderModalOpen(false)}
         currentFolderId={currentFolderId}
         onApplyFolderId={(id) => setCurrentFolderId(id)}
-        availableFolders={availableFolders}
       />
     </div>
   );

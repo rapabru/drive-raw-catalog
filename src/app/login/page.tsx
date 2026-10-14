@@ -1,9 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import { Camera, ShieldCheck, HardDrive, Eye, ArrowRight } from "lucide-react";
-import Link from "next/link";
+import { Camera, ShieldCheck, HardDrive, Eye } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -11,10 +10,12 @@ export default function LoginPage() {
   const { status } = useSession();
   const router = useRouter();
 
-  // If already authenticated, redirect to gallery
-  if (status === "authenticated") {
-    router.push("/");
-  }
+  // If already authenticated, redirect directly to gallery
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-dark-950 text-zinc-100 overflow-hidden px-4 py-12 selection:bg-nikon-amber selection:text-black">
@@ -22,7 +23,7 @@ export default function LoginPage() {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-amber-500/10 via-zinc-800/15 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Main card */}
-      <div className="w-full max-w-md bg-dark-900/90 border border-dark-700/80 rounded-2xl p-8 backdrop-blur-xl shadow-2xl shadow-black/80">
+      <div className="w-full max-w-md bg-dark-900/95 border border-dark-700/80 rounded-2xl p-8 backdrop-blur-xl shadow-2xl shadow-black/80">
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-8">
           <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-dark-800 to-dark-700 border border-dark-600/60 shadow-inner mb-4 group">
@@ -39,25 +40,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Google OAuth Login Button */}
+        {/* Real Google OAuth Login Button */}
         <div className="space-y-4 mb-8">
           <GoogleSignInButton callbackUrl="/" />
-
-          <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-dark-700 w-full" />
-            <span className="bg-dark-900 px-3 text-xs text-zinc-500 uppercase tracking-widest">
-              o
-            </span>
-            <div className="border-t border-dark-700 w-full" />
-          </div>
-
-          <Link
-            href="/?demo=true"
-            className="flex items-center justify-center w-full px-4 py-2.5 text-xs font-medium text-zinc-300 bg-dark-800/80 border border-dark-700 rounded-xl hover:bg-dark-700/80 hover:text-white transition-colors gap-2"
-          >
-            <span>Explorar Galería en Modo Demo</span>
-            <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
-          </Link>
         </div>
 
         {/* Feature bullets */}
@@ -65,14 +50,14 @@ export default function LoginPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
             <span>
-              <strong className="text-zinc-200">Acceso Seguro de Solo Lectura:</strong> Tu cuenta de Google se autentica directamente con los servidores oficiales de Google OAuth.
+              <strong className="text-zinc-200">Acceso Seguro de Solo Lectura:</strong> Tu cuenta se autentica directamente con los servidores de Google OAuth para consultar tus archivos de Drive.
             </span>
           </div>
 
           <div className="flex items-start gap-3">
             <Eye className="w-4 h-4 text-nikon-amber flex-shrink-0 mt-0.5" />
             <span>
-              <strong className="text-zinc-200">Miniaturas Rápidas:</strong> Inspecciona y filtra tus sesiones fotográficas pesadas sin necesidad de descargar gigabytes previamente.
+              <strong className="text-zinc-200">Miniaturas Rápidas:</strong> Visualiza y filtra tus sesiones fotográficas pesadas sin necesidad de descargar gigabytes previamente.
             </span>
           </div>
 
@@ -85,7 +70,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Footer copyright */}
+      {/* Footer */}
       <footer className="mt-8 text-center text-xs text-zinc-600">
         Drive RAW Catalog &bull; Desarrollado para fotógrafos &bull; Next.js 14 & Vercel
       </footer>

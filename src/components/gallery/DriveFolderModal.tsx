@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Folder, HelpCircle, Check, FolderTree, Sparkles } from "lucide-react";
-import { DemoFolderInfo, MOCK_FOLDERS } from "@/lib/constants";
+import { X, Folder, HelpCircle, Check, FolderTree, HardDrive } from "lucide-react";
 
 interface DriveFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentFolderId?: string;
   onApplyFolderId: (id: string | undefined) => void;
-  availableFolders?: DemoFolderInfo[];
 }
 
 export default function DriveFolderModal({
@@ -17,7 +15,6 @@ export default function DriveFolderModal({
   onClose,
   currentFolderId,
   onApplyFolderId,
-  availableFolders = MOCK_FOLDERS,
 }: DriveFolderModalProps) {
   const [folderInput, setFolderInput] = useState(currentFolderId || "");
 
@@ -25,12 +22,13 @@ export default function DriveFolderModal({
 
   const handleSave = () => {
     const trimmed = folderInput.trim();
-    onApplyFolderId(trimmed === "" || trimmed === "all" ? undefined : trimmed);
+    onApplyFolderId(trimmed === "" || trimmed === "root" || trimmed === "all" ? undefined : trimmed);
     onClose();
   };
 
-  const handleQuickSelect = (folderId: string) => {
-    onApplyFolderId(folderId === "all" ? undefined : folderId);
+  const handleSelectRoot = () => {
+    setFolderInput("");
+    onApplyFolderId(undefined);
     onClose();
   };
 
@@ -47,7 +45,7 @@ export default function DriveFolderModal({
           <div className="flex items-center gap-2">
             <FolderTree className="w-5 h-5 text-nikon-amber" />
             <h3 className="text-base font-semibold text-white">
-              Alcance y Carpetas de Google Drive
+              Alcance de Google Drive
             </h3>
           </div>
           <button
@@ -59,60 +57,56 @@ export default function DriveFolderModal({
         </div>
 
         <div className="py-4 space-y-4 text-xs">
-          {/* Quick Demo Folders Selector */}
-          <div>
-            <label className="flex items-center gap-1.5 text-zinc-300 font-medium mb-2 font-mono">
-              <Sparkles className="w-3.5 h-3.5 text-nikon-yellow" /> Sesiones y Carpetas Disponibles:
+          {/* Quick Root Option */}
+          <div className="space-y-2">
+            <label className="block text-zinc-300 font-medium font-mono">
+              Alcance de Búsqueda:
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {availableFolders.map((folder) => {
-                const isSelected =
-                  (!currentFolderId && folder.id === "all") ||
-                  currentFolderId === folder.id;
-
-                return (
-                  <button
-                    key={folder.id}
-                    type="button"
-                    onClick={() => handleQuickSelect(folder.id)}
-                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? "bg-dark-800 border-nikon-amber text-white ring-1 ring-nikon-amber/40"
-                        : "bg-dark-950 border-dark-800 text-zinc-300 hover:bg-dark-800/60 hover:border-dark-700"
-                    }`}
-                  >
-                    <Folder className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isSelected ? "text-nikon-yellow" : "text-zinc-500"}`} />
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate text-[11px]">{folder.name}</p>
-                      <p className="text-[10px] text-zinc-500 truncate">{folder.count} tomas RAW</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={handleSelectRoot}
+              className={`flex items-center gap-3 w-full p-3 rounded-xl border text-left transition-all ${
+                !currentFolderId
+                  ? "bg-dark-800 border-nikon-amber text-white ring-1 ring-nikon-amber/40"
+                  : "bg-dark-950 border-dark-800 text-zinc-300 hover:bg-dark-800/60 hover:border-dark-700"
+              }`}
+            >
+              <HardDrive className={`w-5 h-5 ${!currentFolderId ? "text-nikon-yellow" : "text-zinc-500"}`} />
+              <div>
+                <p className="font-semibold text-xs text-white">Todo mi Google Drive (Raíz)</p>
+                <p className="text-[11px] text-zinc-400">Escanea y cataloga todos los archivos .NEF de tu cuenta</p>
+              </div>
+            </button>
           </div>
 
           <div className="border-t border-dark-800 pt-3">
             <label className="block text-zinc-300 font-medium mb-1.5 font-mono">
-              O ingresa un ID de Carpeta de Drive personalizado:
+              O filtrar por ID de Carpeta específica:
             </label>
-            <input
-              type="text"
-              value={folderInput}
-              onChange={(e) => setFolderInput(e.target.value)}
-              placeholder="Ej: 1A2b3C4d5E6F7G8H9..."
-              className="w-full px-3 py-2 bg-dark-950 border border-dark-700 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-nikon-amber font-mono"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Folder className="w-4 h-4 text-zinc-500" />
+              </div>
+              <input
+                type="text"
+                value={folderInput}
+                onChange={(e) => setFolderInput(e.target.value)}
+                placeholder="Pega el ID de carpeta (ej: 1A2b3C4d5E6F7G8H9...)"
+                className="w-full pl-9 pr-3 py-2 bg-dark-950 border border-dark-700 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-nikon-amber font-mono text-xs"
+              />
+            </div>
           </div>
 
           <div className="p-3 bg-dark-950/60 rounded-xl border border-dark-800 text-zinc-400 text-[11px] space-y-1">
             <span className="font-semibold text-zinc-300 flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5 text-nikon-amber" /> ¿Cómo filtrar por carpeta en Drive?
+              <HelpCircle className="w-3.5 h-3.5 text-nikon-amber" /> ¿Cómo obtener el ID de una carpeta?
             </span>
             <p>
-              Copia el código al final de la URL de tu carpeta en Google Drive:
+              Abre la carpeta de tu sesión en Google Drive y copia los caracteres al final de la URL en la barra de direcciones:
               <br />
-              <span className="font-mono text-zinc-300">drive.google.com/drive/folders/<strong>[ID_DE_CARPETA]</strong></span>
+              <span className="font-mono text-zinc-300 break-all">
+                drive.google.com/drive/folders/<strong>[ID_DE_CARPETA]</strong>
+              </span>
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Camera, Search, SlidersHorizontal, LogOut, LogIn, HardDrive, RefreshCw, FolderTree } from "lucide-react";
+import { Camera, Search, SlidersHorizontal, LogOut, LogIn, RefreshCw, FolderTree } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,7 +11,6 @@ interface NavbarProps {
   onSearchChange: (query: string) => void;
   showDetails: boolean;
   onToggleDetails: () => void;
-  isDemo: boolean;
   onRefresh: () => void;
   isLoading: boolean;
   onOpenFolderModal: () => void;
@@ -23,7 +22,6 @@ export default function Navbar({
   onSearchChange,
   showDetails,
   onToggleDetails,
-  isDemo,
   onRefresh,
   isLoading,
   onOpenFolderModal,
@@ -154,11 +152,6 @@ export default function Navbar({
               </div>
             ) : (
               <div className="flex items-center gap-2 pl-2 border-l border-dark-800">
-                {isDemo && (
-                  <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">
-                    Modo Demo
-                  </span>
-                )}
                 <Link
                   href="/login"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors shadow-sm"

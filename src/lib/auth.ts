@@ -1,20 +1,11 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-const hasGoogleCreds =
-  Boolean(process.env.GOOGLE_CLIENT_ID) &&
-  Boolean(process.env.GOOGLE_CLIENT_SECRET) &&
-  process.env.GOOGLE_CLIENT_ID !== "your_google_client_id.apps.googleusercontent.com";
-
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: hasGoogleCreds
-        ? process.env.GOOGLE_CLIENT_ID!
-        : "demo-client-id.apps.googleusercontent.com",
-      clientSecret: hasGoogleCreds
-        ? process.env.GOOGLE_CLIENT_SECRET!
-        : "demo-client-secret",
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       authorization: {
         params: {
           scope:
