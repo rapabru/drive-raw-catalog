@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Camera, Search, SlidersHorizontal, LogOut, LogIn, RefreshCw, FolderTree } from "lucide-react";
+import { Camera, Search, SlidersHorizontal, LogOut, LogIn, RefreshCw, FolderTree, LayoutGrid } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,6 +15,10 @@ interface NavbarProps {
   isLoading: boolean;
   onOpenFolderModal: () => void;
   currentFolderId?: string;
+  currentFolderName?: string;
+  currentView: "tree" | "gallery";
+  onSwitchView: (view: "tree" | "gallery") => void;
+  hasCatalogedFiles: boolean;
 }
 
 export default function Navbar({
@@ -26,6 +30,10 @@ export default function Navbar({
   isLoading,
   onOpenFolderModal,
   currentFolderId,
+  currentFolderName,
+  currentView,
+  onSwitchView,
+  hasCatalogedFiles,
 }: NavbarProps) {
   const { data: session, status } = useSession();
 
@@ -36,7 +44,11 @@ export default function Navbar({
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 group">
+            <button
+              type="button"
+              onClick={() => onSwitchView("tree")}
+              className="flex items-center gap-2.5 group text-left cursor-pointer"
+            >
               <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-dark-800 border border-dark-700 group-hover:border-nikon-amber/60 transition-colors">
                 <Camera className="w-5 h-5 text-nikon-yellow transition-transform group-hover:scale-105" />
                 <span className="absolute -bottom-1 -right-1 px-1 py-0.2 text-[8px] font-black tracking-tighter text-black bg-nikon-yellow rounded">
@@ -51,72 +63,108 @@ export default function Navbar({
                   NIKON .NEF SPECIALIZED
                 </span>
               </div>
-            </Link>
+            </button>
 
             {/* Folder Scope Indicator */}
             <button
-              onClick={onOpenFolderModal}
-              title="Cambiar carpeta o alcance de Google Drive"
+              onClick={() => onSwitchView("tree")}
+              title="Cambiar carpeta en el Árbol de Carpetas"
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono text-zinc-300 bg-dark-800 border border-dark-700 rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
             >
               <FolderTree className="w-3.5 h-3.5 text-nikon-amber" />
-              <span>{currentFolderId ? `Carpeta: ${currentFolderId.slice(0, 10)}...` : "Todo Google Drive"}</span>
+              <span>
+                {currentFolderName
+                  ? currentFolderName
+                  : currentFolderId
+                  ? `Carpeta: ${currentFolderId.slice(0, 10)}...`
+                  : "Explorador de Carpetas"}
+              </span>
             </button>
           </div>
 
-          {/* Instant Search Bar */}
-          <div className="flex-1 max-w-xl">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-zinc-400" />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Buscar archivos por nombre (ej: DSC_9410, Sesion, Boda)..."
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-dark-950 border border-dark-700 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-nikon-amber focus:ring-1 focus:ring-nikon-amber transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-zinc-400 hover:text-white"
-                >
-                  Limpiar
-                </button>
-              )}
-            </div>
+          {/* View Switcher Tabs (Árbol vs Galería) */}
+          <div className="flex items-center bg-dark-950 p-1 rounded-xl border border-dark-800 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => onSwitchView("tree")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                currentView === "tree"
+                  ? "bg-dark-800 text-nikon-yellow font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <FolderTree className="w-3.5 h-3.5" />
+              <span>Árbol de Carpetas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSwitchView("gallery")}
+              disabled={!hasCatalogedFiles && currentView === "tree"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                currentView === "gallery"
+                  ? "bg-dark-800 text-nikon-yellow font-bold shadow-sm"
+                  : hasCatalogedFiles
+                  ? "text-zinc-400 hover:text-white"
+                  : "text-zinc-600 cursor-not-allowed opacity-50"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Galería RAW</span>
+            </button>
           </div>
+
+          {/* Instant Search Bar (Active in gallery mode) */}
+          {currentView === "gallery" && (
+            <div className="hidden md:flex flex-1 max-w-md">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-zinc-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="Buscar en esta sesión..."
+                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-dark-950 border border-dark-700 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-nikon-amber focus:ring-1 focus:ring-nikon-amber transition-colors font-mono"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Action Controls & User Session */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Refresh button */}
-            <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              title="Actualizar catálogo desde Drive"
-              className="p-2 text-zinc-400 hover:text-white bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-xl transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-nikon-yellow" : ""}`} />
-            </button>
+            {currentView === "gallery" && (
+              <button
+                onClick={onRefresh}
+                disabled={isLoading}
+                title="Actualizar catálogo desde Drive"
+                className="p-2 text-zinc-400 hover:text-white bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-xl transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-nikon-yellow" : ""}`} />
+              </button>
+            )}
 
             {/* Toggle de Detalles / Metadatos */}
-            <button
-              onClick={onToggleDetails}
-              type="button"
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
-                showDetails
-                  ? "bg-nikon-yellow text-black border-nikon-yellow font-semibold shadow-md shadow-amber-500/10"
-                  : "bg-dark-800 text-zinc-300 border-dark-700 hover:bg-dark-750 hover:text-white hover:border-dark-600"
-              }`}
-              title="Alternar vista de metadatos (MB, ruta, fecha, cámara)"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">
-                {showDetails ? "Ocultar Metadatos" : "Mostrar Metadatos"}
-              </span>
-              <span className="md:hidden">Info</span>
-            </button>
+            {currentView === "gallery" && (
+              <button
+                onClick={onToggleDetails}
+                type="button"
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
+                  showDetails
+                    ? "bg-nikon-yellow text-black border-nikon-yellow font-semibold shadow-md shadow-amber-500/10"
+                    : "bg-dark-800 text-zinc-300 border-dark-700 hover:bg-dark-750 hover:text-white hover:border-dark-600"
+                }`}
+                title="Alternar vista de metadatos (MB, ruta, fecha, cámara)"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">
+                  {showDetails ? "Ocultar Metadatos" : "Mostrar Metadatos"}
+                </span>
+                <span className="md:hidden">Info</span>
+              </button>
+            )}
 
             {/* User Profile / Auth State */}
             {status === "authenticated" && session?.user ? (

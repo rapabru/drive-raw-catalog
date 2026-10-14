@@ -1,18 +1,96 @@
 import { google } from "googleapis";
-import { DriveRawFile } from "@/types";
+import { DriveRawFile, DriveFolderItem } from "@/types";
 import { formatBytes, formatDate } from "./utils";
 
 /**
- * Fetches real RAW .NEF files from Google Drive API using user OAuth Access Token
+ * Fetches folders inside a specific parent folder in Google Drive (defaults to 'root')
+ */
+export async function fetchGoogleDriveFolders(
+  accessToken: string,
+  parentId: string = "root"
+): Promise<DriveFolderItem[]> {
+  try {
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const drive = google.drive({ version: "v3", auth });
+
+    const safeParent = parentId.trim().replace(/[^a-zA-Z0-9_-]/g, "") || "root";
+    const query = `mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${safeParent}' in parents`;
+
+    const response = await drive.files.list({
+      q: query,
+      pageSize: 100,
+      orderBy: "name asc",
+      fields: "files(id, name, modifiedTime, parents)",
+    });
+
+    const folders = response.data.files || [];
+
+    return folders.map((f) => ({
+      id: f.id || "",
+      name: f.name || "Carpeta sin nombre",
+      modifiedTime: f.modifiedTime || undefined,
+      modifiedTimeFormatted: f.modifiedTime ? formatDate(f.modifiedTime) : undefined,
+      parents: f.parents || [],
+    }));
+  } catch (error) {
+    console.error("Error al listar carpetas de Google Drive:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches metadata of a specific folder (for breadcrumbs and session naming)
+ */
+export async function fetchFolderDetails(
+  accessToken: string,
+  folderId: string
+): Promise<DriveFolderItem | null> {
+  if (!folderId || folderId === "root" || folderId === "all") {
+    return {
+      id: "root",
+      name: "Mi Unidad (Raíz)",
+    };
+  }
+
+  try {
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const drive = google.drive({ version: "v3", auth });
+
+    const safeFolderId = folderId.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+    const response = await drive.files.get({
+      fileId: safeFolderId,
+      fields: "id, name, modifiedTime, parents",
+    });
+
+    return {
+      id: response.data.id || safeFolderId,
+      name: response.data.name || "Carpeta",
+      modifiedTime: response.data.modifiedTime || undefined,
+      modifiedTimeFormatted: response.data.modifiedTime
+        ? formatDate(response.data.modifiedTime)
+        : undefined,
+      parents: response.data.parents || [],
+    };
+  } catch (err) {
+    console.warn(`No se pudo obtener detalle de carpeta ${folderId}:`, err);
+    return { id: folderId, name: `Carpeta (${folderId.slice(0, 8)}...)` };
+  }
+}
+
+/**
+ * Fetches real RAW .NEF files from Google Drive with PAGINATION (no 100-file limit)
+ * Loops through nextPageToken until all files are retrieved or maxFiles is reached.
  */
 export async function fetchGoogleDriveRawFiles(
   accessToken: string,
-  folderId?: string
+  folderId?: string,
+  maxFiles: number = 3000
 ): Promise<DriveRawFile[]> {
   try {
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
-
     const drive = google.drive({ version: "v3", auth });
 
     // Build search query strictly for Nikon RAW (.NEF) files
@@ -20,24 +98,59 @@ export async function fetchGoogleDriveRawFiles(
       "trashed = false and (name contains '.NEF' or name contains '.nef' or mimeType = 'image/x-nikon-nef')";
 
     if (folderId && folderId.trim() !== "" && folderId !== "all" && folderId !== "root") {
-      // Security: Sanitize folderId against Drive query injection
       const sanitizedFolderId = folderId.trim().replace(/[^a-zA-Z0-9_-]/g, "");
       if (sanitizedFolderId) {
         query += ` and '${sanitizedFolderId}' in parents`;
       }
     }
 
-    const response = await drive.files.list({
-      q: query,
-      pageSize: 100,
-      orderBy: "modifiedTime desc",
-      fields:
-        "files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, parents, imageMediaMetadata)",
-    });
+    const allDriveFiles: Array<{
+      id?: string | null;
+      name?: string | null;
+      mimeType?: string | null;
+      size?: string | null;
+      modifiedTime?: string | null;
+      thumbnailLink?: string | null;
+      webContentLink?: string | null;
+      parents?: string[] | null;
+      imageMediaMetadata?: Record<string, unknown> | null;
+    }> = [];
 
-    const files = response.data.files || [];
+    let pageToken: string | undefined = undefined;
+    let hasNextPage = true;
 
-    return files.map((file) => {
+    // Paginate through Google Drive API to fetch ALL matching files without 100 limit
+    while (hasNextPage && allDriveFiles.length < maxFiles) {
+      const listParams: {
+        q: string;
+        pageSize: number;
+        pageToken?: string;
+        orderBy: string;
+        fields: string;
+      } = {
+        q: query,
+        pageSize: 100,
+        orderBy: "modifiedTime desc",
+        fields:
+          "nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, parents, imageMediaMetadata)",
+      };
+
+      if (pageToken) {
+        listParams.pageToken = pageToken;
+      }
+
+      const res = await drive.files.list(listParams);
+      const pageFiles = res.data.files || [];
+      allDriveFiles.push(...pageFiles);
+
+      if (res.data.nextPageToken) {
+        pageToken = res.data.nextPageToken;
+      } else {
+        hasNextPage = false;
+      }
+    }
+
+    return allDriveFiles.map((file) => {
       const sizeBytes = parseInt(file.size || "0", 10);
       const isNef = (file.name || "").toLowerCase().endsWith(".nef");
 

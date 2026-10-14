@@ -17,7 +17,15 @@ export interface DriveRawFile {
   isNef: boolean;
 }
 
-export interface DriveFolderInfo {
+export interface DriveFolderItem {
+  id: string;
+  name: string;
+  modifiedTime?: string;
+  modifiedTimeFormatted?: string;
+  parents?: string[];
+}
+
+export interface BreadcrumbItem {
   id: string;
   name: string;
 }
