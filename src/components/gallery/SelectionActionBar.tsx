@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { DriveRawFile } from "@/types";
-import { Download, X, HardDrive, CheckCircle2, Loader2, Archive } from "lucide-react";
+import { Download, X, HardDrive, Loader2, Archive, FolderDown } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 import JSZip from "jszip";
 
@@ -27,6 +27,54 @@ export default function SelectionActionBar({
   // Calculate selected files and total size
   const selectedFiles = allFiles.filter((f) => selectedIds.has(f.id));
   const totalSizeBytes = selectedFiles.reduce((acc, f) => acc + (f.size || 0), 0);
+
+  /**
+   * Bundles selected RAW files into a ZIP archive for clean single-package download
+   */
+  const handleZipDownload = async () => {
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(`Preparando paquete ZIP (${selectedFiles.length} archivos)...`);
+
+      const zip = new JSZip();
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        setDownloadProgress(`Comprimiendo (${i + 1}/${selectedFiles.length}): ${file.name}`);
+
+        const response = await fetch(
+          `/api/drive/download?fileId=${file.id}&fileName=${encodeURIComponent(file.name)}`
+        );
+        const blob = await response.blob();
+        zip.file(file.name, blob);
+      }
+
+      setDownloadProgress("Generando archivo ZIP...");
+      const content = await zip.generateAsync({ type: "blob" });
+      const zipUrl = URL.createObjectURL(content);
+
+      const a = document.createElement("a");
+      a.href = zipUrl;
+      a.download = `Nikon_RAW_Export_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(zipUrl);
+
+      setDownloadProgress("¡Descarga de paquete completada!");
+      setTimeout(() => {
+        setDownloadProgress(null);
+        setIsDownloading(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Error creating ZIP:", error);
+      setDownloadProgress("Error al generar archivo.");
+      setTimeout(() => {
+        setDownloadProgress(null);
+        setIsDownloading(false);
+      }, 3000);
+    }
+  };
 
   /**
    * Sequential browser download directly to the user's local Windows downloads directory
@@ -54,7 +102,7 @@ export default function SelectionActionBar({
         await new Promise((res) => setTimeout(res, 400));
       }
 
-      setDownloadProgress("¡Descarga de archivos RAW completada!");
+      setDownloadProgress("¡Descarga de tomas completada!");
       setTimeout(() => {
         setDownloadProgress(null);
         setIsDownloading(false);
@@ -69,51 +117,11 @@ export default function SelectionActionBar({
     }
   };
 
-  /**
-   * Bundles selected RAW files into a ZIP archive
-   */
-  const handleZipDownload = async () => {
-    try {
-      setIsDownloading(true);
-      setDownloadProgress("Comprimiendo tomas seleccionadas en archivo ZIP...");
-
-      const zip = new JSZip();
-
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        setDownloadProgress(`Empaquetando (${i + 1}/${selectedFiles.length}): ${file.name}`);
-
-        const response = await fetch(
-          `/api/drive/download?fileId=${file.id}&fileName=${encodeURIComponent(file.name)}`
-        );
-        const blob = await response.blob();
-        zip.file(file.name, blob);
-      }
-
-      setDownloadProgress("Generando paquete ZIP...");
-      const content = await zip.generateAsync({ type: "blob" });
-      const zipUrl = URL.createObjectURL(content);
-
-      const a = document.createElement("a");
-      a.href = zipUrl;
-      a.download = `Nikon_RAW_Export_${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(zipUrl);
-
-      setDownloadProgress("¡Archivo ZIP descargado con éxito!");
-      setTimeout(() => {
-        setDownloadProgress(null);
-        setIsDownloading(false);
-      }, 2000);
-    } catch (error) {
-      console.error("Error creating ZIP:", error);
-      setDownloadProgress("Error al generar paquete ZIP.");
-      setTimeout(() => {
-        setDownloadProgress(null);
-        setIsDownloading(false);
-      }, 3000);
+  const handlePrimaryDownload = () => {
+    if (selectedFiles.length === 1) {
+      handleSequentialDownload();
+    } else {
+      handleZipDownload();
     }
   };
 
@@ -149,32 +157,41 @@ export default function SelectionActionBar({
             </span>
           )}
 
-          {/* Primary Action Button: Direct to local drive */}
+          {/* Primary Action Button: Smart local download */}
           <button
             type="button"
             disabled={isDownloading}
-            onClick={handleSequentialDownload}
+            onClick={handlePrimaryDownload}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold text-black bg-nikon-yellow hover:bg-nikon-amber rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-            title="Descargar archivos RAW originales directamente a tu disco local de Windows"
+            title={selectedFiles.length > 1 ? "Descargar paquete comprimido (.zip) con las tomas seleccionadas" : "Descargar archivo RAW original"}
           >
             {isDownloading ? (
               <Loader2 className="w-4 h-4 animate-spin text-black" />
+            ) : selectedFiles.length > 1 ? (
+              <Archive className="w-4 h-4 stroke-[2.5]" />
             ) : (
               <Download className="w-4 h-4 stroke-[2.5]" />
             )}
-            <span>Enviar a Descarga Local</span>
+            <span>
+              {selectedFiles.length > 1
+                ? "Descargar Seleccionadas (ZIP)"
+                : "Enviar a Descarga Local"}
+            </span>
           </button>
 
-          {/* Optional ZIP Archive button */}
-          <button
-            type="button"
-            disabled={isDownloading}
-            onClick={handleZipDownload}
-            title="Descargar como archivo comprimido ZIP"
-            className="p-2 text-zinc-300 hover:text-white bg-dark-800 hover:bg-dark-750 border border-dark-700 rounded-xl transition-colors disabled:opacity-50"
-          >
-            <Archive className="w-4 h-4" />
-          </button>
+          {/* Secondary action: Sequential individual downloads if multiple */}
+          {selectedFiles.length > 1 && (
+            <button
+              type="button"
+              disabled={isDownloading}
+              onClick={handleSequentialDownload}
+              title="Descargar archivos .NEF sueltos uno a uno"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-dark-800 hover:bg-dark-750 border border-dark-700 rounded-xl transition-colors disabled:opacity-50"
+            >
+              <FolderDown className="w-4 h-4 text-zinc-400" />
+              <span className="hidden sm:inline">Sueltos</span>
+            </button>
+          )}
 
           {/* Clear selection button */}
           <button

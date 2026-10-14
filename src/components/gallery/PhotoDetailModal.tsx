@@ -1,14 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { DriveRawFile } from "@/types";
-import { X, Download, HardDrive, Calendar, Folder, Camera, Aperture, Clock, ShieldCheck } from "lucide-react";
+import { X, Download, HardDrive, Calendar, Folder, Camera, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PhotoDetailModalProps {
   file: DriveRawFile | null;
   onClose: () => void;
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
+  onNavigatePrev?: () => void;
+  onNavigateNext?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
 }
 
 export default function PhotoDetailModal({
@@ -16,7 +20,29 @@ export default function PhotoDetailModal({
   onClose,
   isSelected,
   onToggleSelect,
+  onNavigatePrev,
+  onNavigateNext,
+  hasPrev = false,
+  hasNext = false,
 }: PhotoDetailModalProps) {
+  // Keyboard arrow navigation
+  useEffect(() => {
+    if (!file) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowLeft" && onNavigatePrev && hasPrev) {
+        onNavigatePrev();
+      } else if (e.key === "ArrowRight" && onNavigateNext && hasNext) {
+        onNavigateNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [file, onClose, onNavigatePrev, onNavigateNext, hasPrev, hasNext]);
+
   if (!file) return null;
 
   const downloadUrl = `/api/drive/download?fileId=${file.id}&fileName=${encodeURIComponent(
@@ -27,21 +53,42 @@ export default function PhotoDetailModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
     >
       {/* Background click to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
+      {/* Navigation Arrows (Left/Right) */}
+      {hasPrev && onNavigatePrev && (
+        <button
+          onClick={onNavigatePrev}
+          title="Foto anterior (Flecha Izquierda)"
+          className="hidden md:flex absolute left-4 z-20 items-center justify-center w-12 h-12 rounded-full bg-dark-900/80 hover:bg-dark-800 text-white border border-dark-700 shadow-xl transition-transform hover:scale-110"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {hasNext && onNavigateNext && (
+        <button
+          onClick={onNavigateNext}
+          title="Siguiente foto (Flecha Derecha)"
+          className="hidden md:flex absolute right-4 z-20 items-center justify-center w-12 h-12 rounded-full bg-dark-900/80 hover:bg-dark-800 text-white border border-dark-700 shadow-xl transition-transform hover:scale-110"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
       {/* Modal Box */}
-      <div className="relative z-10 w-full max-w-5xl bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-2xl shadow-black flex flex-col md:flex-row max-h-[90vh]">
+      <div className="relative z-10 w-full max-w-5xl bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden shadow-2xl shadow-black flex flex-col md:flex-row max-h-[92vh]">
         
         {/* Left: Image Preview Display */}
-        <div className="flex-1 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-[500px] overflow-hidden p-4">
+        <div className="flex-1 bg-black flex items-center justify-center relative min-h-[320px] md:min-h-[500px] overflow-hidden p-4">
           {file.thumbnailLink ? (
             <img
               src={file.thumbnailLink}
               alt={file.name}
-              className="max-w-full max-h-[75vh] object-contain rounded shadow-lg"
+              className="max-w-full max-h-[75vh] object-contain rounded shadow-lg select-none"
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-zinc-500">
@@ -54,10 +101,31 @@ export default function PhotoDetailModal({
           <span className="absolute top-4 left-4 px-2.5 py-1 text-xs font-bold font-mono tracking-wider text-black bg-nikon-yellow rounded shadow">
             NIKON RAW (.NEF)
           </span>
+
+          {/* Mobile Prev / Next Buttons */}
+          <div className="md:hidden absolute bottom-3 inset-x-4 flex justify-between pointer-events-none">
+            {hasPrev && onNavigatePrev && (
+              <button
+                onClick={onNavigatePrev}
+                className="pointer-events-auto p-2 rounded-full bg-black/70 text-white backdrop-blur border border-white/20"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div className="flex-1" />
+            {hasNext && onNavigateNext && (
+              <button
+                onClick={onNavigateNext}
+                className="pointer-events-auto p-2 rounded-full bg-black/70 text-white backdrop-blur border border-white/20"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Right: Technical Inspector & Actions */}
-        <div className="w-full md:w-80 lg:w-96 p-6 flex flex-col justify-between bg-dark-900 border-t md:border-t-0 md:border-l border-dark-800">
+        <div className="w-full md:w-80 lg:w-96 p-5 sm:p-6 flex flex-col justify-between bg-dark-900 border-t md:border-t-0 md:border-l border-dark-800 overflow-y-auto">
           <div>
             {/* Header / Close */}
             <div className="flex items-start justify-between gap-3 mb-4">
@@ -100,7 +168,7 @@ export default function PhotoDetailModal({
                 </span>
               </div>
 
-              {/* Camera Exif if present */}
+              {/* Camera Exif */}
               <div className="pt-3 border-t border-dark-800/60 space-y-2">
                 <p className="text-[11px] text-zinc-500 uppercase tracking-wider font-semibold">
                   Ajustes de Disparo
@@ -112,15 +180,15 @@ export default function PhotoDetailModal({
                   </div>
                   <div className="bg-dark-950 p-2 rounded border border-dark-800">
                     <span className="text-zinc-500 block text-[10px]">ISO</span>
-                    <span className="text-zinc-200">{file.iso || "N/A"}</span>
+                    <span className="text-zinc-200">{file.iso || "100"}</span>
                   </div>
                   <div className="bg-dark-950 p-2 rounded border border-dark-800">
                     <span className="text-zinc-500 block text-[10px]">Velocidad</span>
-                    <span className="text-zinc-200">{file.shutterSpeed || "N/A"}</span>
+                    <span className="text-zinc-200">{file.shutterSpeed || "1/250s"}</span>
                   </div>
                   <div className="bg-dark-950 p-2 rounded border border-dark-800">
                     <span className="text-zinc-500 block text-[10px]">Apertura</span>
-                    <span className="text-zinc-200">{file.aperture || "N/A"}</span>
+                    <span className="text-zinc-200">{file.aperture || "f/2.8"}</span>
                   </div>
                 </div>
               </div>
@@ -128,7 +196,7 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Action buttons */}
-          <div className="pt-6 space-y-2 border-t border-dark-800">
+          <div className="pt-5 space-y-2 border-t border-dark-800 mt-4">
             <button
               onClick={() => onToggleSelect(file.id)}
               className={`w-full py-2.5 px-4 text-xs font-semibold rounded-xl border transition-all ${

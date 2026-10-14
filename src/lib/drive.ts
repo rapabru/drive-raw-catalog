@@ -1,12 +1,17 @@
 import { google } from "googleapis";
 import { DriveRawFile } from "@/types";
 import { formatBytes, formatDate } from "./utils";
+import { DemoFolderInfo, MOCK_FOLDERS } from "./constants";
+
+export { type DemoFolderInfo, MOCK_FOLDERS };
+
 
 /**
- * Realistic Mock Nikon .NEF dataset for offline demonstration or testing
+ * Realistic Mock Nikon .NEF dataset for demonstration or testing
  * before Google Cloud Credentials are set up.
  */
 export const MOCK_RAW_FILES: DriveRawFile[] = [
+  // Session 1: Studio Portrait (Nikon Z8)
   {
     id: "nef-mock-001",
     name: "DSC_9410.NEF",
@@ -17,6 +22,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 4).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Studio_Portrait_2026/RAW_Session_01",
+    folderId: "studio-portrait",
     cameraModel: "Nikon Z8",
     iso: 100,
     shutterSpeed: "1/320s",
@@ -33,6 +39,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 5).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Studio_Portrait_2026/RAW_Session_01",
+    folderId: "studio-portrait",
     cameraModel: "Nikon Z8",
     iso: 100,
     shutterSpeed: "1/400s",
@@ -49,6 +56,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 6).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1502759683299-cdcd6974244f?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Studio_Portrait_2026/RAW_Session_01",
+    folderId: "studio-portrait",
     cameraModel: "Nikon Z8",
     iso: 160,
     shutterSpeed: "1/250s",
@@ -57,6 +65,25 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
   },
   {
     id: "nef-mock-004",
+    name: "DSC_9414.NEF",
+    mimeType: "image/x-nikon-nef",
+    size: 48320100,
+    sizeFormatted: formatBytes(48320100),
+    modifiedTime: new Date(Date.now() - 3600 * 1000 * 7).toISOString(),
+    modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 7).toISOString()),
+    thumbnailLink: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+    folderPath: "/Fotografia/Studio_Portrait_2026/RAW_Session_01",
+    folderId: "studio-portrait",
+    cameraModel: "Nikon Z8",
+    iso: 100,
+    shutterSpeed: "1/500s",
+    aperture: "f/2.2",
+    isNef: true,
+  },
+
+  // Session 2: Patagonia Landscapes (Nikon D850)
+  {
+    id: "nef-mock-005",
     name: "DSC_9415.NEF",
     mimeType: "image/x-nikon-nef",
     size: 53940120,
@@ -65,6 +92,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 10).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Paisajes_Patagonia_2026/Lagos",
+    folderId: "patagonia",
     cameraModel: "Nikon D850",
     iso: 64,
     shutterSpeed: "1/125s",
@@ -72,7 +100,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     isNef: true,
   },
   {
-    id: "nef-mock-005",
+    id: "nef-mock-006",
     name: "DSC_9418.NEF",
     mimeType: "image/x-nikon-nef",
     size: 52109400,
@@ -81,6 +109,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 12).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Paisajes_Patagonia_2026/Lagos",
+    folderId: "patagonia",
     cameraModel: "Nikon D850",
     iso: 100,
     shutterSpeed: "1/60s",
@@ -88,7 +117,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     isNef: true,
   },
   {
-    id: "nef-mock-006",
+    id: "nef-mock-007",
     name: "DSC_9422.NEF",
     mimeType: "image/x-nikon-nef",
     size: 46200110,
@@ -97,6 +126,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 18).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Paisajes_Patagonia_2026/Lagos",
+    folderId: "patagonia",
     cameraModel: "Nikon D850",
     iso: 200,
     shutterSpeed: "1/500s",
@@ -104,7 +134,26 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     isNef: true,
   },
   {
-    id: "nef-mock-007",
+    id: "nef-mock-008",
+    name: "DSC_9425.NEF",
+    mimeType: "image/x-nikon-nef",
+    size: 55410900,
+    sizeFormatted: formatBytes(55410900),
+    modifiedTime: new Date(Date.now() - 3600 * 1000 * 20).toISOString(),
+    modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 20).toISOString()),
+    thumbnailLink: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
+    folderPath: "/Fotografia/Paisajes_Patagonia_2026/Lagos",
+    folderId: "patagonia",
+    cameraModel: "Nikon D850",
+    iso: 64,
+    shutterSpeed: "1/80s",
+    aperture: "f/13",
+    isNef: true,
+  },
+
+  // Session 3: Bodas & Eventos VIP (Nikon Z9)
+  {
+    id: "nef-mock-009",
     name: "DSC_9430.NEF",
     mimeType: "image/x-nikon-nef",
     size: 48930210,
@@ -113,6 +162,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 24).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Bodas_Evento_VIP/Ceremonia",
+    folderId: "boda-vip",
     cameraModel: "Nikon Z9",
     iso: 800,
     shutterSpeed: "1/200s",
@@ -120,7 +170,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     isNef: true,
   },
   {
-    id: "nef-mock-008",
+    id: "nef-mock-010",
     name: "DSC_9435.NEF",
     mimeType: "image/x-nikon-nef",
     size: 50124800,
@@ -129,6 +179,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 26).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Bodas_Evento_VIP/Ceremonia",
+    folderId: "boda-vip",
     cameraModel: "Nikon Z9",
     iso: 1600,
     shutterSpeed: "1/160s",
@@ -136,7 +187,7 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     isNef: true,
   },
   {
-    id: "nef-mock-009",
+    id: "nef-mock-011",
     name: "DSC_9440.NEF",
     mimeType: "image/x-nikon-nef",
     size: 54100980,
@@ -145,10 +196,28 @@ export const MOCK_RAW_FILES: DriveRawFile[] = [
     modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 30).toISOString()),
     thumbnailLink: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80",
     folderPath: "/Fotografia/Bodas_Evento_VIP/Recepcion",
+    folderId: "boda-vip",
     cameraModel: "Nikon Z9",
     iso: 3200,
     shutterSpeed: "1/125s",
     aperture: "f/1.4",
+    isNef: true,
+  },
+  {
+    id: "nef-mock-012",
+    name: "DSC_9445.NEF",
+    mimeType: "image/x-nikon-nef",
+    size: 51870320,
+    sizeFormatted: formatBytes(51870320),
+    modifiedTime: new Date(Date.now() - 3600 * 1000 * 32).toISOString(),
+    modifiedTimeFormatted: formatDate(new Date(Date.now() - 3600 * 1000 * 32).toISOString()),
+    thumbnailLink: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=80",
+    folderPath: "/Fotografia/Bodas_Evento_VIP/Recepcion",
+    folderId: "boda-vip",
+    cameraModel: "Nikon Z9",
+    iso: 2500,
+    shutterSpeed: "1/200s",
+    aperture: "f/1.8",
     isNef: true,
   },
 ];
@@ -169,7 +238,7 @@ export async function fetchGoogleDriveRawFiles(
     // Build search query for RAW .NEF files
     let query = "trashed = false and (name contains '.NEF' or name contains '.nef' or mimeType = 'image/x-nikon-nef')";
     
-    if (folderId && folderId.trim() !== "") {
+    if (folderId && folderId.trim() !== "" && folderId !== "all" && folderId !== "root") {
       query += ` and '${folderId.trim()}' in parents`;
     }
 

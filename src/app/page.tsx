@@ -4,23 +4,24 @@ import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { DriveRawFile } from "@/types";
+import { DemoFolderInfo, MOCK_FOLDERS } from "@/lib/constants";
 import Navbar from "@/components/layout/Navbar";
 import PhotoGrid from "@/components/gallery/PhotoGrid";
 import SelectionActionBar from "@/components/gallery/SelectionActionBar";
 import PhotoDetailModal from "@/components/gallery/PhotoDetailModal";
 import DriveFolderModal from "@/components/gallery/DriveFolderModal";
-import { Info, LogIn, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Info, LogIn } from "lucide-react";
 import Link from "next/link";
 
 function CatalogContent() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const searchParams = useSearchParams();
   const forceDemo = searchParams.get("demo") === "true";
 
   const [files, setFiles] = useState<DriveRawFile[]>([]);
+  const [availableFolders, setAvailableFolders] = useState<DemoFolderInfo[]>(MOCK_FOLDERS);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
-  const [apiNotice, setApiNotice] = useState<string | null>(null);
 
   // Search & Metadata controls
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,11 +51,12 @@ function CatalogContent() {
       if (data.files) {
         setFiles(data.files);
         setIsDemo(Boolean(data.isDemo));
-        setApiNotice(data.message || null);
+      }
+      if (data.folders) {
+        setAvailableFolders(data.folders);
       }
     } catch (err) {
       console.error("Error cargando archivos RAW:", err);
-      setApiNotice("Error al conectar con la API. Mostrando datos de respaldo.");
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +87,23 @@ function CatalogContent() {
     setSelectedIds(new Set());
   };
 
+  // Preview navigation calculations
+  const previewIndex = previewFile ? files.findIndex((f) => f.id === previewFile.id) : -1;
+  const hasPrev = previewIndex > 0;
+  const hasNext = previewIndex >= 0 && previewIndex < files.length - 1;
+
+  const handleNavigatePrev = () => {
+    if (hasPrev) {
+      setPreviewFile(files[previewIndex - 1]);
+    }
+  };
+
+  const handleNavigateNext = () => {
+    if (hasNext) {
+      setPreviewFile(files[previewIndex + 1]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-dark-950 text-zinc-100 flex flex-col selection:bg-nikon-amber selection:text-black">
       {/* Top Navbar */}
@@ -100,7 +119,7 @@ function CatalogContent() {
         currentFolderId={currentFolderId}
       />
 
-      {/* Demo / Notice Alert Banner */}
+      {/* Demo Notice Banner */}
       {isDemo && (
         <aside
           aria-label="Aviso de demostración"
@@ -110,7 +129,7 @@ function CatalogContent() {
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-amber-400 flex-shrink-0" />
               <span>
-                <strong>Modo Demostración Activo:</strong> Estás explorando archivos RAW Nikon (.NEF) de muestra. Configura las variables de Google OAuth en Vercel o tu archivo <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-[11px]">.env.local</code> para sincronizar tu Google Drive en vivo.
+                <strong>Modo Demostración Activo:</strong> Estás explorando el catálogo Nikon (.NEF) con tomas de alta resolución y metadatos EXIF. Puedes filtrar sesiones, cambiar el toggle de metadatos y probar la descarga de archivos.
               </span>
             </div>
             {status !== "authenticated" && (
@@ -148,12 +167,16 @@ function CatalogContent() {
         onClearSelection={handleClearSelection}
       />
 
-      {/* High-res Photo Detail Modal */}
+      {/* High-res Photo Detail Modal with Prev/Next controls */}
       <PhotoDetailModal
         file={previewFile}
         onClose={() => setPreviewFile(null)}
         isSelected={previewFile ? selectedIds.has(previewFile.id) : false}
         onToggleSelect={handleToggleSelect}
+        onNavigatePrev={handleNavigatePrev}
+        onNavigateNext={handleNavigateNext}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
       />
 
       {/* Google Drive Folder Scope Selector Modal */}
@@ -162,6 +185,7 @@ function CatalogContent() {
         onClose={() => setIsFolderModalOpen(false)}
         currentFolderId={currentFolderId}
         onApplyFolderId={(id) => setCurrentFolderId(id)}
+        availableFolders={availableFolders}
       />
     </div>
   );

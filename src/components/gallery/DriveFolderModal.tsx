@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Folder, HelpCircle, Check } from "lucide-react";
+import { X, Folder, HelpCircle, Check, FolderTree, Sparkles } from "lucide-react";
+import { DemoFolderInfo, MOCK_FOLDERS } from "@/lib/constants";
 
 interface DriveFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentFolderId?: string;
   onApplyFolderId: (id: string | undefined) => void;
+  availableFolders?: DemoFolderInfo[];
 }
 
 export default function DriveFolderModal({
@@ -15,6 +17,7 @@ export default function DriveFolderModal({
   onClose,
   currentFolderId,
   onApplyFolderId,
+  availableFolders = MOCK_FOLDERS,
 }: DriveFolderModalProps) {
   const [folderInput, setFolderInput] = useState(currentFolderId || "");
 
@@ -22,7 +25,12 @@ export default function DriveFolderModal({
 
   const handleSave = () => {
     const trimmed = folderInput.trim();
-    onApplyFolderId(trimmed === "" ? undefined : trimmed);
+    onApplyFolderId(trimmed === "" || trimmed === "all" ? undefined : trimmed);
+    onClose();
+  };
+
+  const handleQuickSelect = (folderId: string) => {
+    onApplyFolderId(folderId === "all" ? undefined : folderId);
     onClose();
   };
 
@@ -34,12 +42,12 @@ export default function DriveFolderModal({
     >
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-md bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg bg-dark-900 border border-dark-700 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center justify-between pb-3 border-b border-dark-800">
           <div className="flex items-center gap-2">
-            <Folder className="w-5 h-5 text-nikon-amber" />
+            <FolderTree className="w-5 h-5 text-nikon-amber" />
             <h3 className="text-base font-semibold text-white">
-              Alcance de Búsqueda en Drive
+              Alcance y Carpetas de Google Drive
             </h3>
           </div>
           <button
@@ -51,13 +59,42 @@ export default function DriveFolderModal({
         </div>
 
         <div className="py-4 space-y-4 text-xs">
-          <p className="text-zinc-400">
-            Puedes indexar todo tu Google Drive o limitar la búsqueda a una carpeta específica (ej: la carpeta donde subes tus tarjetas de memoria).
-          </p>
-
+          {/* Quick Demo Folders Selector */}
           <div>
+            <label className="flex items-center gap-1.5 text-zinc-300 font-medium mb-2 font-mono">
+              <Sparkles className="w-3.5 h-3.5 text-nikon-yellow" /> Sesiones y Carpetas Disponibles:
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {availableFolders.map((folder) => {
+                const isSelected =
+                  (!currentFolderId && folder.id === "all") ||
+                  currentFolderId === folder.id;
+
+                return (
+                  <button
+                    key={folder.id}
+                    type="button"
+                    onClick={() => handleQuickSelect(folder.id)}
+                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
+                      isSelected
+                        ? "bg-dark-800 border-nikon-amber text-white ring-1 ring-nikon-amber/40"
+                        : "bg-dark-950 border-dark-800 text-zinc-300 hover:bg-dark-800/60 hover:border-dark-700"
+                    }`}
+                  >
+                    <Folder className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isSelected ? "text-nikon-yellow" : "text-zinc-500"}`} />
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate text-[11px]">{folder.name}</p>
+                      <p className="text-[10px] text-zinc-500 truncate">{folder.count} tomas RAW</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-dark-800 pt-3">
             <label className="block text-zinc-300 font-medium mb-1.5 font-mono">
-              ID de Carpeta de Google Drive (Opcional):
+              O ingresa un ID de Carpeta de Drive personalizado:
             </label>
             <input
               type="text"
@@ -66,17 +103,14 @@ export default function DriveFolderModal({
               placeholder="Ej: 1A2b3C4d5E6F7G8H9..."
               className="w-full px-3 py-2 bg-dark-950 border border-dark-700 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-nikon-amber font-mono"
             />
-            <p className="mt-1 text-[11px] text-zinc-500">
-              * Deja este campo vacío para escanear todo tu almacenamiento de Drive.
-            </p>
           </div>
 
           <div className="p-3 bg-dark-950/60 rounded-xl border border-dark-800 text-zinc-400 text-[11px] space-y-1">
             <span className="font-semibold text-zinc-300 flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5 text-nikon-amber" /> ¿Dónde encontrar el ID de carpeta?
+              <HelpCircle className="w-3.5 h-3.5 text-nikon-amber" /> ¿Cómo filtrar por carpeta en Drive?
             </span>
             <p>
-              Abre la carpeta en Google Drive en tu navegador y copia la serie de letras y números al final de la URL:
+              Copia el código al final de la URL de tu carpeta en Google Drive:
               <br />
               <span className="font-mono text-zinc-300">drive.google.com/drive/folders/<strong>[ID_DE_CARPETA]</strong></span>
             </p>
@@ -97,7 +131,7 @@ export default function DriveFolderModal({
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-black bg-nikon-yellow hover:bg-nikon-amber rounded-xl shadow-md transition-colors"
           >
             <Check className="w-4 h-4" />
-            <span>Aplicar Filtro</span>
+            <span>Aplicar Carpeta</span>
           </button>
         </div>
       </div>
