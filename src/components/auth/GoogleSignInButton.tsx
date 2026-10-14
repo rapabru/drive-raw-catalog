@@ -18,7 +18,10 @@ export default function GoogleSignInButton({
   const handleSignIn = async () => {
     try {
       setIsLoading(true);
-      await signIn("google", { callbackUrl });
+      const result = await signIn("google", { callbackUrl, redirect: true });
+      if (result?.error) {
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error("Error signing in with Google:", error);
       setIsLoading(false);
@@ -58,7 +61,7 @@ export default function GoogleSignInButton({
         </svg>
       )}
       <span className="font-medium tracking-wide">
-        {isLoading ? "Iniciando sesión segura..." : "Continuar con Google"}
+        {isLoading ? "Conectando con Google..." : "Continuar con Google"}
       </span>
     </button>
   );

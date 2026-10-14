@@ -20,7 +20,11 @@ export async function fetchGoogleDriveRawFiles(
       "trashed = false and (name contains '.NEF' or name contains '.nef' or mimeType = 'image/x-nikon-nef')";
 
     if (folderId && folderId.trim() !== "" && folderId !== "all" && folderId !== "root") {
-      query += ` and '${folderId.trim()}' in parents`;
+      // Security: Sanitize folderId against Drive query injection
+      const sanitizedFolderId = folderId.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+      if (sanitizedFolderId) {
+        query += ` and '${sanitizedFolderId}' in parents`;
+      }
     }
 
     const response = await drive.files.list({

@@ -18,10 +18,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("fileId");
-    const fileName = searchParams.get("fileName") || "raw_file.NEF";
+    const rawFileName = searchParams.get("fileName") || "raw_file.NEF";
+    // Security: Sanitize filename to prevent HTTP Header Injection / Content-Disposition manipulation
+    const fileName = rawFileName.replace(/[\r\n"\\/]/g, "").trim() || "raw_file.NEF";
 
     if (!fileId) {
       return NextResponse.json({ error: "fileId es requerido" }, { status: 400 });
+    }
+
+    // Security: Validate fileId format (Google Drive IDs are base64/alphanumeric with - and _)
+    if (!/^[a-zA-Z0-9_-]+$/.test(fileId)) {
+      return NextResponse.json({ error: "ID de archivo no válido" }, { status: 400 });
     }
 
     const auth = new google.auth.OAuth2();
